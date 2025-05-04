@@ -9,20 +9,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-    - name: Deploy to EC2 via SSH
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ec2-user
-        key: ${{ secrets.EC2_KEY }}
-        script: |
-          pkill -f app.py || true
-          rm -rf flaskapp
-          mkdir flaskapp
-          cd flaskapp
-          git clone https://github.com/kevinlwong/InfraPlayground . || true
-          pip3 install --user flask
-          nohup python3 app.py > out.log 2>&1 < /dev/null &
+      - name: Deploy via SSH to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            pkill -f app.py || true
+            rm -rf flaskapp
+            mkdir flaskapp
+            cd flaskapp
+            git clone https://github.com/${{ github.repository }} . || true
+            pip3 install --user flask
+            nohup python3 app.py > out.log 2>&1 < /dev/null &
