@@ -19,10 +19,26 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_KEY }}
           script: |
-            pkill -f app.py || true
-            rm -rf flaskapp
-            mkdir flaskapp
-            cd flaskapp
-            git clone https://github.com/${{ github.repository }} . || true
-            pip3 install --user flask
+            # Kill the specific app process if running
+            pkill -f "python3 app.py" || echo "No app.py process found"
+
+            # Clean and prepare deployment directory
+            DEPLOY_DIR="flaskapp"
+            rm -rf $DEPLOY_DIR
+            mkdir -p $DEPLOY_DIR
+            cd $DEPLOY_DIR
+
+            # Clone the repository
+            if ! git clone https://github.com/${{ github.repository }} .; then
+              echo "Failed to clone repository" >&2
+              exit 1
+            fi
+
+            # Install dependencies
+            if ! pip3 install --user flask; then
+              echo "Failed to install Flask" >&2
+              exit 1
+            fi
+
+            # Start the application
             nohup python3 app.py > out.log 2>&1 < /dev/null &
