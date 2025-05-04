@@ -21,39 +21,44 @@ jobs:
           script: |
             # Kill the specific app process if running
             pkill -f "python3 app.py" || echo "No app.py process found"
-          
+
             # Clean and prepare deployment directory
             DEPLOY_DIR="flaskapp"
             rm -rf $DEPLOY_DIR
             mkdir -p $DEPLOY_DIR
             cd $DEPLOY_DIR
-          
+
             # Clone the repository
             if ! git clone https://github.com/${{ github.repository }} .; then
               echo "Failed to clone repository" >&2
               exit 1
             fi
-          
+
             # Ensure system dependencies are up-to-date
-            sudo yum update -y || { echo "Failed to update system packages"; exit 1; }
-          
+            sudo yum update -y || { echo "Retrying system update..."; sudo yum update -y; } || { echo "Failed to update system packages"; exit 1; }
+
             # Check and install Python and pip3
-            if ! command -v python3 &> /dev/null; then
-              echo "Python3 is not installed. Installing now..."
-              sudo yum install -y python3 || { echo "Failed to install Python3"; exit 1; }
+            if ! python3 --version &> /dev/null; then
+                echo "Installing Python3..."
+                sudo yum install -y python3 || { echo "Failed to install Python3"; exit 1; }
             fi
-          
-            if ! command -v pip3 &> /dev/null; then
-              echo "pip3 is not installed. Installing now..."
-              sudo yum install -y python3-pip || { echo "Failed to install pip3"; exit 1; }
+
+            if ! pip3 --version &> /dev/null; then
+                echo "Installing pip3..."
+                sudo yum install -y python3-pip || { echo "Failed to install pip3"; exit 1; }
             fi
-          
+
             # Use a virtual environment for Python dependencies
-            python3 -m venv venv
+            sudo yum install -y python3-venv
+            python3 -m venv venv || { echo "Failed to create virtual environment"; exit 1; }
             source venv/bin/activate
-          
+
             # Install Flask
             pip install flask || { echo "Failed to install Flask"; exit 1; }
-          
+
             # Start the application
-            nohup python3 app.py > out.log 2>&1 < /dev/null &
+            nohup python3 app.py > out.log 2>&1 &
+            if ! pgrep -f "python3 app.py" > /dev/null; then
+                echo "Failed to start the application. Check logs in $DEPLOY_DIR/out.log"
+                exit 1
+            fi
