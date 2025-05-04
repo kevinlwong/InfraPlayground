@@ -21,24 +21,26 @@ jobs:
           script: |
             # Kill the specific app process if running
             pkill -f "python3 app.py" || echo "No app.py process found"
-
+          
             # Clean and prepare deployment directory
             DEPLOY_DIR="flaskapp"
             rm -rf $DEPLOY_DIR
             mkdir -p $DEPLOY_DIR
             cd $DEPLOY_DIR
-
+          
             # Clone the repository
             if ! git clone https://github.com/${{ github.repository }} .; then
               echo "Failed to clone repository" >&2
               exit 1
             fi
-
-            # Install dependencies
-            if ! pip3 install --user flask; then
-              echo "Failed to install Flask" >&2
-              exit 1
+          
+            # Ensure pip3 and install Flask
+            if ! command -v pip3 &> /dev/null; then
+                echo "pip3 is not installed. Installing now..."
+                sudo yum install -y python3-pip || { echo "Failed to install pip3"; exit 1; }
             fi
-
+          
+            sudo pip3 install flask || { echo "Failed to install Flask"; exit 1; }
+          
             # Start the application
             nohup python3 app.py > out.log 2>&1 < /dev/null &
