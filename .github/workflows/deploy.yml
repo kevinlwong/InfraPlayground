@@ -34,13 +34,26 @@ jobs:
               exit 1
             fi
           
-            # Ensure pip3 and install Flask
-            if ! command -v pip3 &> /dev/null; then
-                echo "pip3 is not installed. Installing now..."
-                sudo yum install -y python3-pip || { echo "Failed to install pip3"; exit 1; }
+            # Ensure system dependencies are up-to-date
+            sudo yum update -y || { echo "Failed to update system packages"; exit 1; }
+          
+            # Check and install Python and pip3
+            if ! command -v python3 &> /dev/null; then
+              echo "Python3 is not installed. Installing now..."
+              sudo yum install -y python3 || { echo "Failed to install Python3"; exit 1; }
             fi
           
-            sudo pip3 install flask || { echo "Failed to install Flask"; exit 1; }
+            if ! command -v pip3 &> /dev/null; then
+              echo "pip3 is not installed. Installing now..."
+              sudo yum install -y python3-pip || { echo "Failed to install pip3"; exit 1; }
+            fi
+          
+            # Use a virtual environment for Python dependencies
+            python3 -m venv venv
+            source venv/bin/activate
+          
+            # Install Flask
+            pip install flask || { echo "Failed to install Flask"; exit 1; }
           
             # Start the application
             nohup python3 app.py > out.log 2>&1 < /dev/null &
